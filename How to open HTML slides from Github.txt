@@ -1,3 +1,2 @@
-1. Click on the file
-2. Click on view raw
-3. Replace the first part of the link (raw.githubusercontent.com) with 'cdn.rawgit.com' 
+1. use the following link https://kijohnson.github.io/ADA_Spring_2019/
+2. Append with the file name at the end that you want to open. For example: https://kijohnson.github.io/ADA_Spring_2019/Class 2/Class_two_slides_RMD.html
