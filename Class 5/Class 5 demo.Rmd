@@ -1,0 +1,211 @@
+---
+title: "GLM logistic demo"
+author: "Kim Johnson and Joe Steensma"
+date: "February 15, 2018"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##Introduction. This demo will use the BRFSS.48K.csv dataset to ask and answer three questions:
+1. Is BMI a risk factor for diabetes?
+2. Is low income a risk factor for diabetes?
+3. Are BMI and low income still risk factors after controlling for each other?
+
+##Read in data and load libraries
+```{r, echo=TRUE}
+BRFSS<-read.csv("https://raw.githubusercontent.com/kijohnson/Advanced-Data-Analysis/master/Class%204%20Data%20Visualization/dat/BRFSS.48K.csv", header=TRUE, sep=",", na.strings=FALSE)
+  BRFSS <- BRFSS[rowSums(is.na(BRFSS))==0,]
+  print(head(BRFSS))
+
+library(plyr)
+library(ggplot2)
+```
+
+##Classify diabetes as a binary variable for logistic regression analyses.
+```{r}
+class(BRFSS$diabetes)#check type of variable
+table(BRFSS$diabetes)#look at number of observations per level
+
+#make a binary diabetes variable categorizing diabetes into yes and no and excluding individuals with other responses.
+BRFSS$diabetes_binary[
+  BRFSS$diabetes=="No"]<-0 #Assign 0 to those who responded no to the diabetes question
+BRFSS$diabetes_binary[
+  BRFSS$diabetes=="Yes"]<-1 #Assign 1 to those who responded yes to the diabetes question
+
+table(BRFSS$diabetes_binary)#check to make sure re-classification worked
+```
+
+##Make a box plot to visualize whether there is a difference in the BMI distributions by diabetes status 
+```{r}
+BRFSS$bmi<-as.numeric(as.character(BRFSS$bmi)) #you made need this code
+BRFSS$diabetes_binary<-as.factor(BRFSS$diabetes_binary) #you made need this code
+
+p <- ggplot(BRFSS[!is.na(BRFSS$diabetes_binary) & !is.na(BRFSS$bmi), ]) #plot and exclude NA's
+  p <- p + geom_boxplot(aes(x=diabetes_binary, y=bmi, fill=diabetes_binary)) #color the boxes with fill
+  p <- p + theme_bw() + xlab("Diabetes Status") + ylab("BMI (kg/m2)") #add labels to axes
+  p
+```
+##Test assumptions of linearity, influence, and check percent correctly predicted for BMI in a logistic model
+```{r}
+#linearity
+bmi.times.logbmi<-BRFSS$bmi*log(BRFSS$bmi)#create term to test linearity
+
+mylogit<-glm(diabetes_binary ~ bmi + bmi.times.logbmi, data=BRFSS, family="binomial") #Box Tidwell technique, test the assumption of linearity
+  summary(mylogit)
+```
+
+
+```{r}
+# influence plots
+# Cook's D plot-identifies observation number in parent dataset
+mylogit2<-glm(diabetes_binary ~ bmi, data=BRFSS, family="binomial") 
+  plot(mylogit2, which=4, id.n=5, col="red") 
+```
+
+
+```{r}
+#check percent correctly predicted (example of how to do this)
+xt<-table(round(predict(mylogit2, type="response")), mylogit2$model$diabetes_binary) 
+  xt #Note the Gold standard (reporting by participant) is the column variable and the model prediction is the row variable. 
+     #Can you calculate sensitivity and specificity of the model for predicting diabetes?
+xt2<- xt/sum(xt)
+  xt2
+  p<-sum(diag(xt2))
+  p #proportion of diabetes correctly classified by the model
+```
+
+##Because linearity assumption was violoated with BMI, let's create a categorical variable according to underweight (<18.5 kg/m2) normal (18.5 to <25 kg/m2), overweight (25 to <30 kg/m2), and obese (30 kg/m2 and above) categories for running in models below
+```{r}
+BRFSS$bmi_cat[
+  (BRFSS$bmi>0 & BRFSS$bmi<18.5)]<-0
+BRFSS$bmi_cat[
+  (BRFSS$bmi>=18.5 & BRFSS$bmi<25)]<-1
+BRFSS$bmi_cat[
+  (BRFSS$bmi>=25 & BRFSS$bmi<30)]<-2
+BRFSS$bmi_cat[
+  (BRFSS$bmi>=30)]<-3
+
+y<-table(BRFSS$bmi_cat)
+  y
+z<-sum(y)
+  z
+
+summary(BRFSS$bmi) #determine number ofNA's bor BMI and see if the NAs plus z add up to the total number of obervations
+```
+
+##Income modeling, first check class of the variable and numbers in each category, make a new income variable for less than 25K, 25 to <75K, >75K, exclude others from analysis
+```{r}
+class(BRFSS$income)
+table(BRFSS$income)
+
+BRFSS$income_3L[
+  BRFSS$income=="< $10,000"|
+  BRFSS$income=="$10,000 to less than $15,000"|
+  BRFSS$income=="$15,000 to less than $20,000"|
+  BRFSS$income=="$20,000 to less than $25,000"]<-2
+
+BRFSS$income_3L[
+  BRFSS$income=="$25,000 to less than $35,000"|
+  BRFSS$income=="$35,000 to less than $50,000"]<-1
+ 
+BRFSS$income_3L[
+  BRFSS$income=="$50,000 to less than $75,000"|
+  BRFSS$income=="$75,000 or more"]<-0
+
+y<-table(BRFSS$income_3L)#check to make sure re-classification worked
+y
+z<-sum(y)
+z
+summary(BRFSS$income)
+```
+
+##Make a bivariate table and calculate proportions at each income_3L level that have diabetes (gives insight into what is expected from the model)
+```{r}
+xt<-table(BRFSS$income_3L, BRFSS$diabetes_binary) 
+  xt
+  prop.table(xt, 1)
+```
+
+##Run logistic models for both BMI, BMI_cat and income
+####BMI
+```{r}
+mylogit1<-glm(diabetes_binary ~ bmi, data=BRFSS, family="binomial")
+  summary(mylogit1)
+  ORbmi<-exp(cbind(OR = coef(mylogit1), confint(mylogit1))) #calculate ORs and 95% CIs
+  ORbmi #print ORs and 95% CIs
+```
+
+####BMI_cat
+```{r}
+mylogit2<-glm(diabetes_binary ~as.factor(bmi_cat), data=BRFSS, family="binomial")
+  summary(mylogit2)
+  ORbmi_cat<-exp(cbind(OR = coef(mylogit2), confint(mylogit2))) #calculate ORs and 95% CIs
+  ORbmi_cat #print ORs and 95% CIs
+```
+
+####Income_3L
+```{r}
+BRFSS$income<-relevel(as.factor(BRFSS$income_3L), ref=2) #set reference at 2
+  mylogit3<-glm(diabetes_binary ~ as.factor(income_3L), data=BRFSS, family="binomial")
+  summary(mylogit3)
+  ORincome<-exp(cbind(OR = coef(mylogit3), confint(mylogit3))) #calculate ORs and 95% CIs
+  ORincome #print ORs and 95% CIs
+```
+
+##Multivariate model with diabetes as the dependent variable and income and bmi/bmi_cat as the independent variables
+####BMI continuous
+```{r}
+mylogit4<-glm(diabetes_binary ~ as.factor(income_3L) + bmi, data=BRFSS, family="binomial")
+  summary(mylogit4)
+  ORmodel<-exp(cbind(OR = coef(mylogit4), confint(mylogit4))) #calculate ORs and 95% CIs
+  ORmodel #print ORs and 95% CIs
+```
+
+#BMI categorical
+```{r}
+mylogit5<-glm(diabetes_binary ~ as.factor(income_3L) + as.factor(bmi_cat), data=BRFSS, family="binomial")
+  summary(mylogit5)
+  ORmodel<-exp(cbind(OR = coef(mylogit5), confint(mylogit5))) #calculate ORs and 95% CIs
+  ORmodel #print ORs and 95% CIs
+```
+
+##Look at influential observations and percent correctly classified for whole model
+```{r}
+#Cook's D plot
+plot(mylogit4, which=4, id.n=5, col="red", cex.id=0.60) 
+
+#identify observations with a Cook's D greater than 0.0015 
+y<-as.data.frame(cooks.distance(mylogit4))
+colnames(y)[1]<-"CD"
+y$obs_no<-rownames(y)
+z<-y[which(y$CD>0.0015),]
+z$obs_no
+
+#which(y$cooks.distance(mylogit4)>0.0015)]
+
+#Classification
+xt<-table(round(predict(mylogit4, type="response")), mylogit4$model$diabetes_binary)
+  xt
+  xt2<- xt/sum(xt)
+  xt2
+  p<-sum(diag(xt2))
+  p
+```
+
+##Exclude influential observations and compare Betas
+```{r}
+library(car)#car library needed for compareCoefs (notice the Camelcase!)
+  mylogit.modex<-update(mylogit4,subset=c(-474, -13638, -17330, -17967, -21625, -25898, -27151, -38567, -42674))#dropping obs with CD>0.0015
+  compareCoefs(mylogit4, mylogit.modex) #compare coefficients between models with and without influential         observations
+```
+
+##Interpretation and conclusions (Discussion)
+
+##For fun: 
+1. The BMI linearity assumption was violated, if you remove influential observations is it still violated using the Box Tidwell method?
+2. Calculate the sensitivity and specificity of the model for predicting reported diabetes
