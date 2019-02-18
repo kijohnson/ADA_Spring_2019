@@ -1,0 +1,6 @@
+infile dictionary {
+    _column(1)    numeric                                ID_   %20f  "Respondent id number"
+   _column(21)    numeric                             CHILDS   %20f  "Number of children"
+   _column(41)    numeric                                AGE   %20f  "Age of respondent"
+   _column(61)    numeric                                SEX   %20f  "Respondents sex"
+}
