@@ -1,0 +1,356 @@
+---
+title: 'Class 6: Poissin/NegBin regression'
+author: "Kim Johnson"
+date: "February 20, 2019"
+output:
+  slidy_presentation:
+    font-family: Arial
+    highlighter: prettify
+    md_extensions: +hard_line_breaks
+  pdf_document:
+    md_extensions: +hard_line_breaks
+    number_sections: yes
+  html_document:
+    md_extensions: +hard_line_breaks
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error=TRUE)
+```
+
+#Lecture Outline
+1. Count data
+2. The Poisson distribution
+3. The Poisson regression model
+4. The negative binomial regression model
+5. Comparisons between Poissin and negbin
+6. Interpretations
+
+#Learning Objectives
+1. Be able to understand when to use Poisson or negative binomial regression 
+2. Understand how to run these models in R
+3. Know how to interpet model results
+
+#Count data
+- The outcome variable is a count or the number of times an event has happened
+- Examples:
+    + Number of times using a service (visiting a doctor, hospitalization)
+    + Daily homicides
+    + Number of beverages consumed
+    + Number of police arrests
+    + Cancer rates
+    + Car accidents
+    + Genetic mutations
+    + Birth defects
+- The primary feature of a count variable is that it has a skewed distribution (as compared to a normal distritubtion)
+
+#Ordinary least squares (i.e. linear regression)
+- Cannot apply OLS to a count variable because it violates the normality assumption
+- Models that deal with count outcomes:
+1. The Poisson regression model: the probability of a count is determined by the Poisson distribution. The model has a defining characteristic that the conditional mean of the outcome is equal to the conditional variance.
+2. The negative binomal regression model is needed when the conditional variance exceeds the conditional mean.
+3. Other models for other violations (not considered here): zero-truncated models, hurdle regression models, zero-inflated models.
+
+#The Poisson distribution
+- The probability distribution of a Poisson random variable y (e.g. car accidents), which is the number of successes in a given interval of time or space is given by the below formula
+![](Poisson1.png)
+
+where y= 0,1, 2, ...
+$\mu$ is the mean number of successes in a given time interval or region of space
+- The probability of y is a function of $\mu$:
+Pr(y=0|$\mu$) = exp(-$\mu$)
+Pr(y=1|$\mu$) = exp(-$\mu$)$\mu$
+Pr(y=3|$\mu$) = exp(-$\mu$)$\mu$^3^/6
+
+#The Poisson distribution
+- This plot shows Pr(y) when $\mu$ = 0.8, 1.5, 2.8, and 10.5
+- As $\mu$ increases, the mass of the distribution shifts to the right. 
+- $\mu$ is known as the rate, it is the expected number of times an event occurred per unit time.
+- It is also the mean or expected count.
+![](Poissondist.png)
+
+
+#The Poisson distribution
+- The variance equals the mean: Var(y)=E(y)=$\mu$
+- This is a unique feature of the Poisson distribution known as **equidispersion**
+- When the variance of the count is greater than the mean of the count in the sample, we say that the count variable y has **overdispersion**
+- When overdisperison occurs, you should use the negative binomial model (or one of the other models noted above)
+
+![](Poissondist.png)
+#The Poisson distribution
+- As $\mu$ increases, the probability of 0's decrease. i.e. the Pr(y=0) decreases
+- As $\mu$ increases, the Poisson distribution approximates a normal distribution. When E($\mu$)=Var($\mu$)=10.5 for this dataset, a normal distribution superimposes on the Poisson distribution
+![](Poissondist.png)
+
+#The Poisson distribution
+- The figure shows what a negatively skewed Poisson distribution looks like
+- We know for *this* dataset Poisson approximates to a normal distribution at $\mu$=10.5, so any $\mu$>10.5 creates a negatively skewed Poisson. When $\mu$ is close to 10.5 such as $\mu$=11.5, the distribution approaches normal
+
+![](Poissondist2.png)
+
+#Heterogeneity
+- The key idea of statistical modeling is to use *independent variables* to model heterogeneity. When enough observed heterogeneities are accounted for, the model would fit the study data to a desirable degree.
+- In Poisson regression, this task is known as finding important predictors of the rate of change $\mu$ (or the expected count).
+- In a Poisson model with no predictors, the model often fails to account for heterogeneity, and the model predicted outcomes are largely different from the observed outcomes.
+- Failure to account for heterogeneity also leads to overdispersion. When important predictors are used but one still encounters overdispersion, you need to employ negative binomial regression.
+
+#The link function for Poisson
+- Take a logarithm transformation of $\mu$
+![](linkfunction.png)
+
+#Poisson model specification
+- In R glm, we need to use the link function
+- For specifying the model in reports, you can use the below equation
+![](Structuralmod1.png)
+
+- The below formula will give you the predicted probability 
+
+![](Structuralmod3.png)
+
+#Poisson regression output
+- In Poisson regression, you get incidence rate ratios
+- Incidence rate ratios are calculated as exp($\beta$)
+- Betas (the model parameters) are estimated through maximimum liklihood 
+- Maximum liklihood finds the betas that result in the mean y that best fits the data
+
+#Interpretation
+- For a unit change in x, the expected count/incidence rate changes by a factor of exp($\beta$), other things being equal
+- You can also interpet the change in terms of percentage change
+- You can also use predicted probabilities to present and interpret findings (average marginal effects, marginal effects at means, and marginal effects at representative values); however, these are not commonly used in public health
+
+#The negative binomial regression model
+- The assumption that the conditional variance = the conditional mean in Poisson rarely holds. There is often overdispersion. In this scenario the negative binomial (negbin) can be used.
+- To address the problem of overdispersion, the negbin model adds a parameter (so called overdispersion parameter $\alpha$) that allows the conditional variance of y to exceed the conditional mean.
+- Overdispersion is when the observed variance in the response y is higher than the variance in the response y from the theoretical model. The consequence of this is that the estimated standard errors will be wrong (biased low) and the p-values will be too low.
+- The motivation of adding this parameter is to model unobserved heterogeneity. In the negbin model, the mean $\mu$ is replaced with the random variable $\tilde{\mu}$ 
+![](muhat.png)
+
+#The negative binomial model specification
+
+![](Negbin1.png)
+
+- You can calculate model predicted probabilities with the below formula:
+
+![](Negbin2.png)
+
+#Robust standard errors
+- Because of overdispersion, the standard error in both Poisson regression and negbin regression are downwardly biased (inflating p-values). As a convention, we always use robust standard errors.
+
+#Comparisons between Poisson and negbin
+- The overdispersion parameter $\theta$=0 for Poisson and $\theta$>0 for negbin ($\theta$ from R output--it is actually the inverse of the dispersion parameter estimated by SAS, Stata, and SPSS per https://stats.idre.ucla.edu/r/dae/negative-binomial-regression/)
+- Estimated standard errors from Poisson tend to be smaller than those from negbin
+- Overdispersion can be tested with the liklihood ratio test (lrtest in R) because Poisson is a special case of Negbin where $\mu$=variance (i.e. Poisson is nested within negbin)
+
+#Interpretations of negbin
+- Use either exp(B) or model-predicted probabilities to interpret findings of the negbin regression
+- The exp(B) in the negbin regression has exactly the same meaning as that from a Poisson regression. It’s the “incidence-rate ratio”, or IRR. 
+- For a unit change in x, the expected count changes by a factor of exp(βx), other things being equal
+- You can also interpret the change in terms of percentage change.
+- Or you can use predicted probabilities but as said for Poisson, these are not commonly used in public health so we will not cover these here
+
+#A last word--using offsets
+-  Sometimes our unit of observation for Poisson/negbin is at the group level rather than the individual level (counts/group number rather than counts/individual number)
+-  In this case we need an extra term in our model on the right hand side that is the log of the population or person years at risk.
+
+#Skin cancer example (Applied Regression Analysis and Multivariable Methods, 4th Edition. and https://rpubs.com/kaz_yos/poisson)'
+
+#Create a function to calculate IRR
+```{r}
+glm.RR <- function(GLM.RESULT, digits = 2) {
+
+    if (GLM.RESULT$family$family == "binomial") {
+        LABEL <- "OR"
+    } else if (GLM.RESULT$family$family == "poisson") {
+        LABEL <- "RR"
+    } else {
+        stop("Not logistic or Poisson model")
+    }
+
+    COEF      <- stats::coef(GLM.RESULT)
+    CONFINT   <- stats::confint(GLM.RESULT)
+    TABLE     <- cbind(coef=COEF, CONFINT)
+    TABLE.EXP <- round(exp(TABLE), digits)
+
+    colnames(TABLE.EXP)[1] <- LABEL
+
+    TABLE.EXP
+}
+```
+
+
+#Skin cancer data
+```{r}
+## Create a dataset manually
+nonmel <- read.table(header = TRUE,
+                     text = "
+   cases city u1 u2 u3 u4 u5 u6 u7      n
+1      1    0  1  0  0  0  0  0  0 172675
+2     16    0  0  1  0  0  0  0  0 123065
+3     30    0  0  0  1  0  0  0  0  96216
+4     71    0  0  0  0  1  0  0  0  92051
+5    102    0  0  0  0  0  1  0  0  72159
+6    130    0  0  0  0  0  0  1  0  54722
+7    133    0  0  0  0  0  0  0  1  32185
+8     40    0  0  0  0  0  0  0  0   8328
+9      4    1  1  0  0  0  0  0  0 181343
+10    38    1  0  1  0  0  0  0  0 146207
+11   119    1  0  0  1  0  0  0  0 121374
+12   221    1  0  0  0  1  0  0  0 111353
+13   259    1  0  0  0  0  1  0  0  83004
+14   310    1  0  0  0  0  0  1  0  55932
+15   226    1  0  0  0  0  0  0  1  29007
+16    65    1  0  0  0  0  0  0  0   7583
+")
+
+## Create age.range variable and city variable
+nonmel <- within(nonmel, {
+    age.range <- rep(c("15_24","25_34","35_44","45_54","55_64","65_74","75_84","85+"), 2)
+    age.range <- factor(age.range)
+    age.range <- relevel(age.range, ref = "85+")
+
+    city <- factor(city, 0:1, c("Minneapolis", "Dallas"))
+})
+
+## rop unnecessary columns
+nonmel <- nonmel[c("cases","n","city","age.range")]
+
+## Check data
+nonmel
+```
+# The outcome that we want to predict is a rate of skin cancer between the two cites (cases/n) but glm only predicts counts. Therefore, we need to use an **offset*, which is defined by log(n) or log(population) in the model.
+```{r}
+## Including offset(log(n)) in the right hand side
+model.1 <- glm(cases ~ city + age.range + offset(log(n)), family = poisson(link = "log"), data = nonmel)
+## Using the offset option
+model.1 <- glm(cases ~ city + age.range, offset = log(n), family = poisson(link = "log"), data = nonmel)
+
+## Results from regular Poisson
+summary(model.1)
+```
+#To get IRRs and 95% CIs use the funciton glm.RR created above
+```{r}
+glm.RR(model.1, 3)
+```
+
+#We can also use this model for prediction
+```{r}
+## Predict case per person (n = 1) for oldest people in the Minneapolis
+exp(predict(model.1, newdata = data.frame(city = "Minneapolis", age.range = "85+", n = 1)))
+```
+```{r}
+
+## Create dataset to predict for
+newdat1 <- nonmel[c("city","age.range")]
+newdat2 <- newdat1
+
+## Predicted number of cases per person
+newdat1$n <- 1
+nonmel$pred.cases.per.one <- exp(predict(model.1, newdat1))
+
+## Predicted number of cases per one thousand persons
+newdat2$n <- 1000
+nonmel$pred.cases.per.thousand <- exp(predict(model.1, newdat2))
+
+## Predicted number of cases per actual population
+nonmel$pred.cases <- exp(predict(model.1))
+
+## Show prediction results
+nonmel
+```
+#use quasi-poisson to get dispersion parameter
+```{r}
+## quasi-Poisson to allow the scale parameter to change from 1. Show the dispersion parameter.
+model.1q <- glm(cases ~ city + age.range, offset = log(n), family = quasipoisson(link = "log"), data = nonmel)
+summary(model.1q)
+```
+#To get robust standard errors
+```{r}
+## Load sandwich package for robust estimator
+library(sandwich)
+## Load lmtest package for coeftest
+library(lmtest)
+## Poisson model with SE estimated via robust variance estimator
+coeftest(model.1, vcov = sandwich)
+```
+
+#We can also use negbin to overcome overdispersion although in this case its probably okay
+```{r}
+## Load MASS
+library(MASS)
+## Negative binomial regression
+model.1nb <- glm.nb(cases ~ city + age.range + offset(log(n)), data = nonmel)
+summary(model.1nb)
+```
+
+#We can also decide which model is better to use (Poisson vs. negbin by comparing models using the liklihood ratio test)
+
+```{r}
+library(lmtest) #model comparison
+lrtest(model.1, model.1nb)
+```
+
+##Further compare two models
+Below we further compare the estimates between the two models. As the results show, the Poisson regression estimates SEs that are always smaller (as shown by the narrower CIs) than those from the negbin. This implies that the Poisson regression leads to biased significance tests, and tends to make non-significant predictors significant. 
+```{r}
+library(stargazer)
+stargazer(model.1, model.1nb, title="Model Comparison",
+          type="text",align=TRUE,single.row=TRUE)
+```
+
+#A second example, lung cancer deaths in British male physicians
+years.smok a factor giving the number of years smoking
+cigarettes a factor giving cigarette consumption
+Time man-years at risk
+y number of deaths
+
+#install package, load library and data
+```{r}
+install.packages("SMPracticals")
+library(SMPracticals)
+data("lung.cancer")
+```
+
+```{r}
+head(lung.cancer, 15)
+```
+
+#Run Poisson regression
+```{r}
+## Poisson
+model.P <- glm(y ~ years.smok + cigarettes,
+                         offset = log(Time),
+                         family = poisson(link = "log"), data = lung.cancer)    
+summary(model.P)
+```
+#get dispersion parameter from quasi poisson
+```{r}
+## Quasi-Poisson
+model.Pq <- glm(y ~ years.smok + cigarettes,
+                         offset = log(Time),
+                         family = quasipoisson(link = "log"), data = lung.cancer)    
+summary(model.Pq)
+```
+#get rate ratios using rate ratio function
+```{r}
+glm.RR(model.P, 3)
+```
+
+#Use robust standard errors through the robust sandwich covariance estimator and assign it to an object to calculate IRRs
+```{r}
+## Poisson model with SE estimated via robust variance estimator
+robust<-coeftest(model.P, vcov = sandwich)
+```
+
+#Use negative binomial for overdispersion control
+## Negative binomial regression
+
+```{r}
+model.nb <- glm.nb(y ~ years.smok + cigarettes + offset(log(Time)), data = lung.cancer)
+summary(model.nb)
+```
+#the negative binomial model did not work--would use poisson with robust standard errors. Below is the calculation for the IRRs from this model.
+```{r}
+est <- cbind(IRR = coef(model.P), "2.5%"=robust[,1]-1.96*robust[,2], "97.5%"=robust[,1]+1.96*robust[,2])
+exp(est)
+```
+
+#Let's interpret these results for years.smok20-24
