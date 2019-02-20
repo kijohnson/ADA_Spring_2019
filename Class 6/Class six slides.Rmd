@@ -66,26 +66,24 @@ Pr(y=3|$\mu$) = exp(-$\mu$)$\mu$^3^/6
 - As $\mu$ increases, the mass of the distribution shifts to the right. 
 - $\mu$ is known as the rate, it is the expected number of times an event occurred per unit time.
 - It is also the mean or expected count.
-![](Poissondist.png)
-
+![](Poissondist.png){width=50%}
 
 #The Poisson distribution
 - The variance equals the mean: Var(y)=E(y)=$\mu$
 - This is a unique feature of the Poisson distribution known as **equidispersion**
 - When the variance of the count is greater than the mean of the count in the sample, we say that the count variable y has **overdispersion**
 - When overdisperison occurs, you should use the negative binomial model (or one of the other models noted above)
+![](Poissondist.png){width=50%}
 
-![](Poissondist.png)
 #The Poisson distribution
 - As $\mu$ increases, the probability of 0's decrease. i.e. the Pr(y=0) decreases
 - As $\mu$ increases, the Poisson distribution approximates a normal distribution. When E($\mu$)=Var($\mu$)=10.5 for this dataset, a normal distribution superimposes on the Poisson distribution
-![](Poissondist.png)
+![](Poissondist.png){width=50%}
 
 #The Poisson distribution
 - The figure shows what a negatively skewed Poisson distribution looks like
 - We know for *this* dataset Poisson approximates to a normal distribution at $\mu$=10.5, so any $\mu$>10.5 creates a negatively skewed Poisson. When $\mu$ is close to 10.5 such as $\mu$=11.5, the distribution approaches normal
-
-![](Poissondist2.png)
+![](Poissondist2.png){width=50%}
 
 #Heterogeneity
 - The key idea of statistical modeling is to use *independent variables* to model heterogeneity. When enough observed heterogeneities are accounted for, the model would fit the study data to a desirable degree.
@@ -95,6 +93,7 @@ Pr(y=3|$\mu$) = exp(-$\mu$)$\mu$^3^/6
 
 #The link function for Poisson
 - Take a logarithm transformation of $\mu$
+- The logarithm of the mean count is modeled as a linear combination of the unknown paremeters (the betas that are estimated by MLE) 
 ![](linkfunction.png)
 
 #Poisson model specification
@@ -234,17 +233,29 @@ glm.RR(model.1, 3)
 #We can also use this model for prediction
 ```{r}
 ## Predict case per person (n = 1) for oldest people in the Minneapolis
-exp(predict(model.1, newdata = data.frame(city = "Minneapolis", age.range = "85+", n = 1)))
+## see https://stat.ethz.ch/R-manual/R-devel/library/stats/html/predict.glm.html for more information on this function
+exp(predict(model.1, newdata = data.frame(city = "Minneapolis", age.range = "85+", n = 1))) 
+
+
 ```
+```{r}
+#How is this calculated?
+#exp(intercept)
+```
+
 ```{r}
 
 ## Create dataset to predict for
 newdat1 <- nonmel[c("city","age.range")]
+## Create duplicate dataset to use later
 newdat2 <- newdat1
 
 ## Predicted number of cases per person
+#add variable n, which is = 1
 newdat1$n <- 1
+#predict cases per person from model
 nonmel$pred.cases.per.one <- exp(predict(model.1, newdat1))
+#To get the number for 15-24 in MSP, we add the intercept + the beta for 15-24 and exponentiate
 
 ## Predicted number of cases per one thousand persons
 newdat2$n <- 1000
@@ -271,7 +282,6 @@ library(lmtest)
 ## Poisson model with SE estimated via robust variance estimator
 coeftest(model.1, vcov = sandwich)
 ```
-
 #We can also use negbin to overcome overdispersion although in this case its probably okay
 ```{r}
 ## Load MASS
@@ -280,22 +290,18 @@ library(MASS)
 model.1nb <- glm.nb(cases ~ city + age.range + offset(log(n)), data = nonmel)
 summary(model.1nb)
 ```
-
 #We can also decide which model is better to use (Poisson vs. negbin by comparing models using the liklihood ratio test)
-
 ```{r}
 library(lmtest) #model comparison
 lrtest(model.1, model.1nb)
 ```
-
-##Further compare two models
+#Further compare two models
 Below we further compare the estimates between the two models. As the results show, the Poisson regression estimates SEs that are always smaller (as shown by the narrower CIs) than those from the negbin. This implies that the Poisson regression leads to biased significance tests, and tends to make non-significant predictors significant. 
 ```{r}
 library(stargazer)
 stargazer(model.1, model.1nb, title="Model Comparison",
           type="text",align=TRUE,single.row=TRUE)
 ```
-
 #A second example, lung cancer deaths in British male physicians
 years.smok a factor giving the number of years smoking
 cigarettes a factor giving cigarette consumption
