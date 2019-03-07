@@ -1,0 +1,188 @@
+---
+title: 'Survival analysis: Kaplan Meier Curves'
+author: 'Kim Johnson, MPH, PhD'
+output:
+  slidy_presentation: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+##Outline for today's class
+- Motivating question(s) for survival analysis
+- Theory
+- Terms associated with survival analysis
+- Survival and hazard functions
+- Kaplan-Meier curves key concepts
+- Kaplan-Meier curves plotting
+- Testing for statistical differences between survival curves
+
+##Who lives longer (or alternatively who fails faster)?
+- Survival analyses are used to determine differences in time to an event (such as death) in two or more groups.
+- If you want to know if there is a difference in survival in patients randomized to drug A vs. B., how would you do that, what do you need to consider?
+
+##Features of survival analysis
+- Many individuals make it to the end of a follow-up period or are lost to follow-up without having an event and their event time is unknown.
+- Survival data are usually skewed with many early events and few late ones.
+- Survival analyses incorporate methods such as censoring and non-parametric tests to handle these issues.
+
+##Theory--the basics
+- What we estimate in survival analyses is differences between groups in event rates.
+- An **event** is a disease, death, relapse or anything else that can happen to someone. An event is also sometimes referred to as a **failure**.
+- **Survival time** is the time variable.
+- Survival time is measured from the time the person is followed (e.g. start of a study or t=0) for an event until they have the event, are **censored** due to some other event (e.g. death or loss to follow-up), or the observation period ends (e.g. end of the study, end of data collection round, etc.)
+
+![](http://journals.plos.org/plosone/article/figure/image?size=medium&id=info:doi/10.1371/journal.pone.0112838.g001)
+
+##Censoring
+- We often can't just measure survival as a case-fatality incidence rate especially for chronic conditions because of **censoring**, especially in studies that last several years.
+- Survival analyses use special techniques to account for censoring, which almost always happens in human studies.
+- **Censoring** occurs when a person:
+      - does not experience the event of interest during the study (over the observation period)
+      - is lost to follow-up
+      - withdraws from the study
+- Most survival time is **right censored** as in the figure on the previous slide because we don't have information on the full survival time. We use the observed survival time in survival analysis.
+- **Left censoring** occurs when we don't know the lower bound of survival time. For example, if our outcome is HIV positivity as measured by an HIV test, we don't actually know the survival time to the event (HIV exposure/infection) because it occurred sometime prior to our test measurement, so the survival time we measure is less than the actual survival time. We will not consider left censoring further here. 
+- **Interval censoring** may also occur where there are several follow-up time points during a study when individuals are examined for an outcome (e.g. 3, 6, 9 months). Individuals who do not have the event at 3 months but who are lost to follow-up between 3 and 6 months are interval censored.
+
+##Informative vs. non-informative censoring
+- Standard methods for survival analysis can be used when censoring of observations is **non-informative**.
+- This means that censoring is not related to the prognosis for the event *or* in other words those who are censored (e.g. because of loss to follow-up) should be just as likely to have the event as those who remain under observation (this can create selection bias if not true).
+- **Informative censoring** can occur when patients are censored and this is related to their probability of having the event (e.g. patients withdraw from a clinical trial because of drug toxicity or because they get sicker).In this case standard methods cannot be used because there is bias.
+
+##Completeness of follow-up
+- Patients who do not have the event can be included in survival analyses up to the point they have the event or are censored.
+- Unequal follow-up times between groups should be examined. 
+- An uneven frequency of individuals lost to follow-up between groups can be an indicator of selection bias.
+
+##Survival Analysis Notation (from Kleinbaum and Klein Survival Analysis textbook, 2005)
+- **T** is a random variable indicating a person's survival time 
+- **t** is any value of **T**
+- $\delta$ is a random variable indicating that a person in the dataset had the event (usually coded as 1) or was censored (usually coded as 0). Sometimes this is referred to as the person's status (had the event or did not have the event).
+
+##Survivor function
+- **S(t)** is used to denote the survivor function. It gives the probability that a person's survival time (**T**) exceeds time **t**
+
+![](survfunction.PNG)
+
+- Ranges from 0 to $\infty$
+
+
+##Hazard function h(t)
+- **h(t)** (also known as the hazard rate or $\lambda$) is used to denote the hazard function. It is related to survival and can be derived from S(t) but we will not cover this here.
+- The hazard is a rate and not a probability like the survivor function.
+- Ranges from 0 to $\infty$
+
+![](hazard.PNG)
+
+- Kleinbaum says that "This mathematical formula is difficult to explain in practical terms."
+- The numerator gives the probability that a person will have an event during t+dt given they have survived up to time t.
+- Gives the instantaneous potential for an event to occur *given* that an individual has survived to time *t*.
+- Focuses on failing rather than surviving and is sometimes called the **conditional failure rate**.
+- The units are probability per unit time making it a rate rather than a probability and difficult to interpret outright (ranges from 0 to $\infty$).
+
+##Different hazard models (Kleinbaum)
+- These are parametric-assuming a probability distribution
+- Constant hazard (exponential model): h(t) is stable for healthy people. h(t)=$\lambda$ no matter what the value of t is.
+- Increasing Weibull: h(t) increases with time (cancer with low survival).
+- Decreasing Weibull: h(t) decreases with time (persons recovering from surgery).
+- Increasing and decreasing lognormal: h(t) increases and then decreases (TB patients).
+
+![courtesy of Kleinbaum](exponential.PNG)
+![courtesy of Kleinbaum](weibull.PNG)
+
+##What are KM curves?
+- Used to look at differences in survival between two groups (such as drug treatment or placebo in a clinical trial).
+- Uses longitudinal data
+- y-axis = percent surviving
+- x-axis = time
+
+![](https://s3.amazonaws.com/cdn.graphpad.com/faq/1747/images/1747d.gif)
+
+
+##KM Survival Estimate formula
+- S($t_{j-1}$) is the probability of being alive at $t_{j-1}$ (the time right before the one you are calculating)
+- 1-$d_j$/$n_j$ is the probability not having an event during the interval
+- So you are left with the probability of being alive at the end of the interval given that you survived to the start of the interval
+
+![](KM_formula2.PNG)
+
+
+##Data layout
+![general data layout needed for software to conduct data analysis](data_layout.PNG)
+
+
+##Example 
+- Let's do a KM curve in excel, look at some descriptive statistics, and then do it in R
+- Descriptives: average hazard and median survival time
+```{r}
+#install.packages("survival") #for survival analysis by group
+#install.packages('ggfortify') #for survival analysis by group
+#install.packages("survminer") #for pairwise diffs
+library(survminer)#for pairwise diffs
+library(survival) #for calculating KM values
+library(ggfortify) #for KM curves
+library(readxl) # for reading in excel file
+library(ggplot2) # for plotting KM curve
+library(tidyverse) # for various packages
+data <- read_excel("Surv_data_class9b.xlsx", sheet=2) #load data for this exercise
+
+data$Group<-factor(data$Group, levels=c(0,1), labels=c("Control", "Treatment"))
+```
+##Let's look at survival time **without** censored events. Do you see any differences?
+```{r}
+data2<-data[which(data$d==1),]#delete censored events
+ggplot(data2, aes(t, color=factor(Group))) + geom_histogram(aes(y=..density..), binwidth=1, bins=30, position="dodge") + geom_density(alpha=.3) #Histogram overlaid with kernel density curve
+```
+
+##Let's do a KM curve in excel and then code it in R
+```{r}
+leukemia.surv <- survfit(Surv(t, d) ~ Group, data) #calculates KM survivor function values for plotting
+summary(leukemia.surv) #get KM values
+autoplot(leukemia.surv) + labs(x="Survival months", y="Proportion Surviving", title="KM survival plots for Leukemia by Group") #using ggfortify library to calculate fancy KM plots with confidence intervals
+ggsurvplot(leukemia.surv, data = data, risk.table = TRUE, conf.int=TRUE) #another function to do this
+```
+```{r}
+leukemia.surv #Median survival
+```
+```{r}
+plot(leukemia.surv, lty = 2:3, xlab="Months", ylab="Proportion surviving") #using base plot to calculate non-fancy plots 
+legend("topright", c("Control", "Treatment"), lty = 2:3) 
+title("Kaplan-Meier Curves\nfor Leukemia Study") 
+```
+
+##Cumulative Incidence Curves
+- Cumulative incidence of death equals 1-the survival probability at time t.
+- These are just looking at the probability of death over time instead of survival.
+```{r}
+lsurv2 <- survfit(Surv(t, d) ~ Group, data, type='fleming') 
+plot(lsurv2, lty=2:3, fun="event", 
+	xlab="Months", ylab="Cumulative Incidence (%)=1-survival probability at time t") #plot %failing at time t (1-survival probability at time t)
+legend("topright", c("Control", "Treatment"), lty = 2:3) 
+title("Cumulative Incidence Curves\nfor Leukemia Study")
+```
+
+##Testing statistical differences between survival curves-The log rank test (most common)-Go to excel sheet
+- Used to determine statistical differences between two survival curves
+- Large sample chi-square test 
+- Approximate and exact formulas
+![exact](logrank.PNG)
+![approximate](approximate.PNG)
+
+##Calculate exact log rank in R
+```{r}
+survdiff(Surv(t, d) ~ Group,data=data)
+```
+
+##Code for pairwise differences (for when you have more than 2 groups)
+```{r}
+pairwise_survdiff(Surv(t, d) ~ Group,data=data)
+```
+
+##Other tests (described but not covered in detail here)
+- **Wilcoxon test** (called Breslow in SPSS), **Tarone-Ware test**, **Flemington-Harrington test**
+    - places different weights on failures
+    - For example, Wilcoxon and Tarone-Ware place more weight on early failures where the number at risk is larger
+- **Stratified log rank test**- provides a way to test for differences between survival curves while controlling for another variable
+
+
