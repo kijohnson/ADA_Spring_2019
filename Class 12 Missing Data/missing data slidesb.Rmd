@@ -1,0 +1,301 @@
+---
+title: "Missing Data"
+author: "Kim Johnson"
+date: "April 10, 2019"
+output:
+  slidy_presentation: default
+  html_document:
+    df_print: paged
+  beamer_presentation: default
+  pdf_document: default
+  ioslides_presentation: default
+---
+
+##Learning objectives
+1. Understand what missing data is
+2. Understand why it can potentially be a big deal
+3. Learn how to do multiple imputation in R using the MICE package
+
+##What is the big deal with missing data?
+- What do we care about in epidemiology and biostatistcs?
+- Why can't we just exclude all the people with missing data, do our analysis, and publish our results? 
+- BIAS and potentially BAD SCIENCE!!
+
+<center>
+![](https://cdn-images-1.medium.com/max/870/1*3pF-NELchJznte5Vg1luBw.png)</center>
+
+##A simple example
+- What do you notice about the pattern of missing data?
+- What happens if we eliminate observations with missing data?
+- How is the OR biased in the data with the eliminated observations relative to the unobserved dataset?
+
+<center>
+![](truth.PNG)</center>
+
+
+
+##Donald B. Rubin - the pioneer on thinking of missing data
+<center>
+![from: A Conversation with Donald B. Rubin, Li and Mealli, 2014](Rubin.PNG)</center>
+
+##A bit of history - a seminal paper
+- Missing data seminal paper published in 1976 by Donald B. Rubin (Biometrika 1976)
+
+<center>
+![](Rubin1976.PNG)</center>
+
+##A bit of history - a seminal book
+
+<center>
+![](https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1348066943i/2627255._UY630_SR1200,630_.jpg)</center>
+
+##Here is what Dr. Rubin says in that book:
+<center>
+![](missingdata.PNG)</center>
+
+##Why are data missing?
+- People drop out of studies
+- People don't respond to certain questions on a survey
+- Inability to collect information (e.g. missed appointment in experimental studies)
+- Machine that measures some characteristic has a bad day
+- Researcher drops tray of samples
+- Hard drive/server fails
+- Laptop gets lost (never store data on laptop if possible)
+
+
+
+##Missing data types
+- Need to understand process for missing data in order to understand type and how to deal with it
+- Ignorable missing data can be corrected while non-ignorable (NI) missing data cannot
+
+- <span style="color:green">**Missing completely at random (MCAR)**</span>
+    - Missing value for variable y depends neither on x or y
+    - Example: some questions are asked of a random sample of survey respondents
+    - Ignorable missing data
+- <span style="color:green">**Missing at Random (MAR)**</span>
+    - Missing value for variable y depends on x but not on the value of the variable y
+    - Example: males are less likely to report BMI than females
+    - Depends only on observed data and not on unobserved data (so we can account for it)
+    - Ignorable missing data (need to correct for it)
+- <span style="color:green">**Missing Not at Random (MNAR) or Not Missing at Random (NMAR)**</span>
+    - Probability of missing for a variable depends on the variable value 
+    - In other words missing data depends on the value 
+    - Example people with higher BMIs are less likely to report BMI and these people are more likely to develop the outcome
+    - Non-ignorable-usually described as a limitation
+
+
+##Effects of missing data
+
+- MCAR - loss of statistical power but unbiased estimates of effect
+- MAR - unbiased parameter estimates when imputation is conducted
+- MNAR - biased parameter estimates
+
+<center>
+![](CummingsFig1.PNG)</center>
+
+
+##What characteristics should a solid method of dealing with missing data have? 
+- *from J. Graham, Annu. Rev. Psychol. 2009. 60:549-576*
+
+1. The method should yield unbiased parameter estimates (should be close to population values)
+2. There should be a method for assessing the degree of uncertainty in the estimates (i.e. should account for missingness in standard errors and confidence intervals)
+3. The method should have good statistical power
+
+
+##Ways to deal with missing data
+- **Mean substition (*Do not use*)**: Substitute missing values with mean of the distribution for the variable
+- **Listwise deletion (Complete case analysis)(*Use with caution*)**: only include people with data on all variables 
+- **Pairwise deletion (Available case analysis)(*Do not use*)**: individual data still included in calculations of correlations if they have values for at least one of the variables 
+- **Code individuals with a missing value on a variable into a missing category (*Do not use*)**. Rothman says that this method is biased and entirely invalid (pg. 208 of Modern Epidemiology, 2nd edition)
+- **Single imputation: impute missing values for a variable one at a time (*Do not use*)**
+- **Multiple imputation**: Impute a plausible **set** of missing values that cover the range of uncertainty of possible values (*Use!!*)
+
+##Why multiple imputation?
+- There is uncertainty from each single imputation that multiple imputation accounts for.
+- Improves accuracy of standard errors
+
+
+##The MICE (multivariate imputation by chained equations) in R
+- Multiple imputation is the method of choice for missing data
+- "To the uninitiated, multiple imputation is a bewildering technique that differs substantially from conventional statistical approaches. As a result, the first-time user may get lost in a labyrinth of imputation models, missing data mechanisms, multiple versions of the data, pooling, and so on." (from Buuren and Groothuis-Oudshoorn, 2011)
+
+<center>
+![](https://i1.wp.com/roboticsandautomationnews.com/wp-content/uploads/2018/03/confused-signpost.jpg?fit=1024%2C576&ssl=1){width=70%}</center>
+
+##Using the MICE package in R
+- Helps you impute missing data with *plausible* values
+- Drawn from the distribution of values customized for each missing data point
+- There are multiple other imputation packages in R. For more information see: https://www.analyticsvidhya.com/blog/2016/03/tutorial-powerful-packages-imputing-missing-values/
+
+##What it does (3 steps)
+1. Generates **n** number of datasets with imputed values for missing data
+2. Analyzes data using these datasets
+3. Pools estimates and standard errors to get pooled $\beta$'s and SEs
+<center>
+![](imputation1.PNG)</center>
+
+- The three imputed datasets shown in the figure are the same for non-missing values and differ for missing values. The magnitude of this difference represents the uncertainty in the imputed values with respect to the real unknown/unobserved value. The imputed values are calculated by chained equations, which is beyond the scope of this course. To read more: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3074241/ 
+- Next, we use our standard regression models to estimate the parameter of interest from each of the imputed datasets.
+- Finally, we pool the parameter estimates and their SEs using what is referred to as *Rubin's rules* to get a single imputed parameter estimate.
+
+##How it does it (With credit to: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3074241/)
+- The observed values from a variable are regressed on other variables in the dataset. Therefore, the variable with the missing data is the dependent variable and the other variables are the predictor variables
+- Can use whatever type of regression model is appropriate for your dependent variable
+- The missing values are replaced for the variable with the model predictions
+- This is repeated for each variable with missing data to create a single imputed dataset
+- Cycles are run to compute multiple imputed datasets to be used for analysis and pooling
+
+##What the imputation model should do (another way of characterizing a solid method for dealing with missing data)
+- Accounts for the process that created the missing data
+- Preserves the relations between variables in the data
+- Preserves the uncertainty about these relations
+- Multiple imputation does all of this! Caveat: We are still uncertain about bias in parameter estimates for data MNAR but we can test assumptions.
+
+##If imputations are not done correctly, what can happen (among other less obvious things)?
+- Can create impossible combinations (e.g. pregnant fathers)
+- Imputations can be nonsensical (e.g. body temperature of the dead)
+
+##Let's see how this works using the R MICE (Multiple Imputation by Chained Equations) package and the NHANES dataset that is provided with the package. 
+```{r}
+#install.packages("mice") #Install mice package for imputed missing data
+#install.packages('VIM') #Install VIM package for plotting missing data patterns
+#install.packages("lattice")
+library(VIM) 
+library(mice) 
+library(lattice)
+```
+##load builtin NHANES data to look at NAs
+```{r}
+nhanes
+```
+##Look at missing data patterns using the md.pattern function
+```{r}
+md.pattern(nhanes)
+#13/25 rows are complete
+# 3 rows have missing data on chl
+# 1 row has missing data on bmi
+# 1 row has missing data on hyp and bmi
+# 7 rows have missing data on hyp, bmi, and chl (i.e. 3 missing data points per person)
+#There are a total of 3 missing data patterns in the dataset
+##What is the total number of missing values across people? 
+```
+##We can also study missing data for pairs of variables using the md.pairs function in the MICE package
+- Three patterns are present
+    - rr: values for both variables are present and accounted for
+    - rm: values for the first variable are available and the second variable are missing
+    - mr: values for the first variable are missing and the second variable is available
+    - mm: values for both variables are missing
+    
+```{r}
+p<-md.pairs(nhanes)
+p
+```
+##Create margin plot to see how missing values on one variable relate to values on another variable. We will do this for cholesterol (chl) and bmi
+```{r}
+marginplot(nhanes[,c("chl","bmi")], col=c("blue","red","orange"), cex=1.5,
+cex.lab=1.5, cex.numbers=1.3, pch=19)
+
+##What does it mean?
+#blue dots represent observed values
+#The three red dots on the vertical axis represent observed values for BMI that are missing for chl
+#The two red dots on the horizontal axis indicate observed values for chl that are missing for BMI
+# The orange dot indicates records for which both bmi and chl are missing
+#The three numbers at the bottom give incomplete records for different combinations. 
+#9 records where BMI is missing (note: the 9 is missing from the box above 7! Bug!). 
+#7 records for which both BMI and chl are missing and 10 records for which chl is missing. 
+#The blue and red box plots are distributions for variables on the x and y axis for missing and non-missing data. 
+#For example, the distribution of bmi among those with missing chl is shown in red along the y-axis. 
+#Similarly, the distribution of chl for those with missing bmi is shown in red along the x-axis.
+```
+##Look at the distribution of one variable according to missing non-missing status for another variable using pbox
+```{r}
+pbox(nhanes,pos=1) #pos corresponds to the column number for the y-axis variable
+#what do we see in this graph?
+#View(nhanes)
+```
+##How do we actually impute the missing data? Well we call the MICE function of course! All values that are missing are imputed using the other variables as predictors. There are ways to leave some variables out of the imputation (refer to the excellent resource:https://www.jstatsoft.org/article/view/v045i03
+```{r}
+imp<-mice(nhanes, m=5, seed=100) #m = number of imputations, 5 is the default. If you don't include the m argument, 5 imputations will be done.
+
+##look at imputation details. 
+imp
+```
+##Let's look at the meaning of the output
+- Imputations are generated by the default method for numerical data, which is called **pmm** or predictive mean matching, For more information on PMM, see: https://statisticalhorizons.com/predictive-mean-matching
+- The VisitSequence (not shown) provides the order of imputation, which flows from left to right in the dataset unless you change it. The PredictorMatrix tells you what variables are being used to predict others. Age is not missing so nothing is being used to predict age. BMI is missing so age, hyp, and chl are being used to predict bmi, hyp is missing so age, bmi and chl are being used to predict hyp and so on. For information on what VisitSequence and PredictorMatrix, I refer to the excellent documentation in the MICE package (https://www.jstatsoft.org/article/view/v045i03).
+
+##Diagnostics for imputation model: Are the imputed values plausible? Do we have any pregnant fathers (not really since this variable wasn't in our dataset)?
+```{r}
+#check age
+imp$imp$age #imp$imp refers to dataframe and list called imp within dataframe that has 4 items (age, bmi, hyp, chl)
+#check BMI
+imp$imp$bmi
+#check hyp
+imp$imp$hyp
+#check chl
+imp$imp$chl
+#the rows contain the imputed values and the columns are the multiple imputations
+```
+##Obtain the first and second complete datasets for review
+```{r}
+complete(imp)
+complete(imp,5)
+```
+##Let's compare the imputed to the non-imputed data to see how the distributions compare using the functions: complete and stripplot
+```{r}
+com <-complete(imp, "long", inc=T) #extracts 5 imputed datasets
+col <- rep(c("blue","red")[1+as.numeric(is.na(imp$data$chl))],6) #distinguishes between observed and imputed values (blue and red)
+stripplot(chl~.imp, data=com, jit=TRUE, fac=0.8, col=col, pch=20, cex=1.4, xlab="Imputation number")
+
+#hyp
+com <-complete(imp, "long", inc=T) #extracts 5 imputed datasets
+col <- rep(c("blue","red")[1+as.numeric(is.na(imp$data$hyp))],6) #distinguishes between observed and imputed values (blue and red)
+stripplot(hyp~.imp, data=com, jit=TRUE, fac=0.8, col=col, pch=20, cex=1.4, xlab="Imputation number")
+
+#bmi
+com <-complete(imp, "long", inc=T) #extracts 5 imputed datasets
+col <- rep(c("black","red")[1+as.numeric(is.na(imp$data$bmi))],6) #distinguishes between observed and imputed values (blue and red)
+stripplot(bmi~.imp, data=com, jit=TRUE, fac=0.8, col=col, pch=20, cex=1.4, xlab="Imputation number")
+#This is an example of what MCAR should look like. It may look different for MAR and MNAR and you are referred to the excellent resource to learn about other ways to look at missing data patterns and diagnosis of imputation (https://www.jstatsoft.org/article/view/v045i03)
+```
+##Analysis of imputed data using a linear regression model
+```{r}
+fit <-with(imp, lm(chl~age +bmi)) #get regression coefficients
+pool(fit) #pool regression coefficients and standard errors
+summary(pool(fit)) #get summary 
+```
+##How does the imputed data compare to the non-imputed data analysis?
+```{r}
+Complete_case<-lm(chl~age +bmi, data=nhanes)
+summary(Complete_case)
+```
+##Code for applying the Wald-test to the imputed datasets. Use cautiously, this is beta code. For more information: https://stefvanbuuren.name/fimd/sec-multiparameter.html
+```{r}
+fit0 <-with(imp, exp=lm(chl ~ age ))
+summary(fit0)
+fit1 <-with(imp, exp=lm(chl ~ age + bmi +hyp))
+summary(fit1)
+D1(fit1, fit0)
+```
+
+##Specifying imputation models correctly can be challenging. Here are some considerations.
+1.  Decide whether MAR assumption is realistic. There are additional assumptions that can be used for MNAR (see the excellent resource on MICE)
+2.  The model form needs to be specified for each incomplete column of data (each variable)
+    - default methods are listed in the table and you can perform a dry run to autodetect model forms to be used for each variable that is being imputed. This is shown in the homework.
+<center>    
+![](imputationtech.PNG)</center>
+
+##Specifying imputation models correctly can be challenging. Here are some considerations (cont.).
+3.  Decide on variables to include as predictors in the impuation model. Include as many predictors as possible and their interactions OR at least include those that will be included in your regression model. Also include the dependent variable (J Graham, 2014).
+4. Decide whether to impute variables that are "functions of other incomplete variables".
+5. Decide whether you should specify an order in which the variables should be imputed.
+6. Decide on the number of iterations (not discussed further here).
+7. Decide on the number of multiply imputed datasets. The default for m is 5 but if m is too low, it may result in p-values that are too low.
+- **The default choices used in our example may not be best for your data**
+
+##Resources for further reading
+- I am indebted to these terrific methodologists below for helping me develop the content for this class!!
+- Cummings,P.  Missing Data and Multiple Imputation. 2013;167(7):656-661. doi:10.1001/jamapediatrics.2013.1329
+- Van Buuren S, Groothuis-Oudshoorn K. mice: Multivariate Imputation by Chained Equations in R. 2011, 45(3):https://www.jstatsoft.org/article/view/v045i03/v45i03.pdf
+- Graham JW. Missing Data Analysis. Making it Work in the Real World.Annu. Rev. Psychol. 2009. 60:549-576
+
